@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -44,7 +45,7 @@ func main() {
 		case "echo":
 			// Print args joined by space + newline
 			fmt.Println(strings.Join(args, " "))
-		
+
 		case "type":
 			if len(args) == 0 {
 				continue
@@ -58,27 +59,47 @@ func main() {
 			}
 
 			// PATH search
-			found := false
 			pathEnv := os.Getenv("PATH")
-			dirs := strings.Split(pathEnv, ":")
+			dirs := strings.Split(pathEnv, string(os.PathListSeparator))
+
+			exts := []string{""} // Unix-style: no extension
+			if pe := os.Getenv("PATHEXT"); pe != "" {
+				exts = strings.Split(pe, string(os.PathListSeparator))
+			}
+
+			found := false
 
 			for _, dir := range dirs {
-				fullPath := filepath.Join(dir, target)
+				for _, ext := range exts {
+					fullPath := filepath.Join(dir, target+ext)
 
-				info, err := os.Stat(fullPath)
-				if err != nil {
-					continue
+					info, err := os.Stat(fullPath)
+					if err != nil {
+						continue
+					}
+
+					if info.Mode().IsRegular() {
+						if runtime.GOOS == "windows" {
+							// On Windows, existence + extension is enough
+							fmt.Printf("%s is %s\n", target, fullPath)
+							found = true
+							break
+						}
+
+						// Unix: must have execute permission
+						if info.Mode()&0111 != 0 {
+							fmt.Printf("%s is %s\n", target, fullPath)
+							found = true
+							break
+						}
+					}
+
 				}
-
-				// Must be a regular file with execute permission
-				if info.Mode().IsRegular() && info.Mode()&0111 != 0 {
-					fmt.Printf("%s is %s\n", target, fullPath)
-					found = true
+				if found {
 					break
 				}
 			}
 
-			// Not found
 			if !found {
 				fmt.Printf("%s: not found\n", target)
 			}
