@@ -22,6 +22,10 @@ func main() {
 
 		command := strings.TrimSpace(line)
 
+		if command == "exit" {
+			return
+		}
+
 		// For now, treat all commands as invalid
 		if command != "" {
 			fmt.Printf("%s: command not found\n", command)
