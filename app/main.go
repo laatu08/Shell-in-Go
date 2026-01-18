@@ -20,15 +20,27 @@ func main() {
 			return
 		}
 
-		command := strings.TrimSpace(line)
-
-		if command == "exit" {
-			return
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
 		}
 
-		// For now, treat all commands as invalid
-		if command != "" {
-			fmt.Printf("%s: command not found\n", command)
+		// 4. Tokenize
+		parts := strings.Fields(line)
+		cmd := parts[0]
+		args := parts[1:]
+
+		// 5. Builtins
+		switch cmd {
+		case "exit":
+			return
+
+		case "echo":
+			// Print args joined by space + newline
+			fmt.Println(strings.Join(args, " "))
+
+		default:
+			fmt.Printf("%s: command not found\n", cmd)
 		}
 	}
 }
