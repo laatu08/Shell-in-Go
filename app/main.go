@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -32,12 +33,10 @@ func main() {
 			continue
 		}
 
-		// 4. Tokenize
 		parts := strings.Fields(line)
 		cmd := parts[0]
 		args := parts[1:]
 
-		// 5. Builtins
 		switch cmd {
 		case "exit":
 			return
@@ -52,9 +51,35 @@ func main() {
 			}
 
 			target := args[0]
+
 			if builtins[target] {
 				fmt.Printf("%s is a shell builtin\n", target)
-			} else {
+				continue
+			}
+
+			// PATH search
+			found := false
+			pathEnv := os.Getenv("PATH")
+			dirs := strings.Split(pathEnv, ":")
+
+			for _, dir := range dirs {
+				fullPath := filepath.Join(dir, target)
+
+				info, err := os.Stat(fullPath)
+				if err != nil {
+					continue
+				}
+
+				// Must be a regular file with execute permission
+				if info.Mode().IsRegular() && info.Mode()&0111 != 0 {
+					fmt.Printf("%s is %s\n", target, fullPath)
+					found = true
+					break
+				}
+			}
+
+			// Not found
+			if !found {
 				fmt.Printf("%s: not found\n", target)
 			}
 
